@@ -1,0 +1,1110 @@
+<title>Postavte si vlastního AI Chief of Staff — Framework pro vedení</title>
+<style>
+  :root {
+    --ground: #14181E;
+    --panel: #1B2129;
+    --panel-2: #1F2731;
+    --line: #2A323C;
+    --line-soft: #232B34;
+    --text: #E9E3D6;
+    --muted: #9AA4AE;
+    --faint: #6E7884;
+    --accent: #C99A3F;
+    --accent-hi: #E0B968;
+    --steel: #7C9CA8;
+
+    --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --container: min(1120px, 92vw);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hi); }
+  :focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 3px; border-radius: 2px; }
+
+  .container { width: var(--container); margin-inline: auto; }
+
+  /* ---------- type system ---------- */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+  .eyebrow .num { color: var(--faint); margin-right: 0.9em; }
+
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; }
+  h2 {
+    font-size: clamp(1.9rem, 4.2vw, 3rem);
+    line-height: 1.05;
+    margin: 0.5rem 0 0;
+  }
+  h3 { margin: 0; }
+
+  .lead { color: var(--muted); font-size: clamp(1.02rem, 1.7vw, 1.2rem); line-height: 1.65; }
+
+  /* inline example highlight */
+  .eg { color: var(--steel); }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(20,24,30,0.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .topbar .inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+  }
+  .brand {
+    font-family: var(--font-mono);
+    font-size: 0.74rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text);
+    display: flex; align-items: center; gap: 0.6em;
+  }
+  .brand .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .topnav { display: flex; gap: 1.6rem; }
+  .topnav a {
+    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .topnav a:hover { color: var(--accent-hi); }
+  @media (max-width: 820px) { .topnav { display: none; } }
+
+  /* ---------- sections ---------- */
+  .section { padding: clamp(4rem, 9vw, 7.5rem) 0; border-top: 1px solid var(--line-soft); }
+  .section--panel { background: var(--panel); }
+  .section-head { max-width: 760px; margin-bottom: clamp(2.2rem, 5vw, 3.4rem); }
+  .section-head .lead { margin-top: 1.1rem; }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; padding: clamp(3.5rem, 7vw, 6rem) 0 clamp(3.5rem, 7vw, 5.5rem); }
+  .hero-grid {
+    display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+  }
+  .hero h1 {
+    font-size: clamp(2.7rem, 6.6vw, 4.7rem);
+    line-height: 0.98;
+    margin: 1.4rem 0 0;
+  }
+  .hero h1 .em { color: var(--accent); font-style: italic; }
+  .hero .lead { margin-top: 1.6rem; max-width: 38ch; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 1.6rem; margin-top: 2.2rem; }
+  .meta-row .fact { display: flex; flex-direction: column; gap: 0.25rem; }
+  .meta-row .fact .v { font-family: var(--font-display); font-size: 1.15rem; color: var(--text); }
+  .meta-row .fact .k { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+
+  /* console visual */
+  .console {
+    position: relative; aspect-ratio: 1 / 1.02;
+    border: 1px solid var(--line); border-radius: 4px;
+    background: linear-gradient(160deg, #171C23, #11151B);
+    overflow: hidden;
+    box-shadow: 0 30px 80px -40px rgba(0,0,0,0.8);
+  }
+  .console canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; }
+  .console .src {
+    position: absolute; z-index: 2; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.18em;
+    color: var(--faint); text-transform: uppercase;
+  }
+  .console .src.s1 { top: 9%; left: 8%; }
+  .console .src.s2 { top: 16%; right: 9%; }
+  .console .src.s3 { top: 50%; left: 5%; }
+  .console .src.s4 { bottom: 16%; right: 7%; }
+  .console .src.s5 { bottom: 9%; left: 12%; }
+
+  .brief {
+    position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 70%;
+    background: rgba(29,36,45,0.95);
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--accent);
+    border-radius: 3px;
+    padding: 0.95rem 1.05rem 1.05rem;
+    box-shadow: 0 18px 50px -22px rgba(0,0,0,0.9);
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .brief { animation: briefin 0.9s 0.5s cubic-bezier(.2,.7,.2,1) backwards; }
+  }
+  @keyframes briefin { from { opacity: 0; transform: translate(-50%, -44%) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+  .brief .bhead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.6rem; }
+  .brief .btitle { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
+  .brief .bday { font-family: var(--font-mono); font-size: 0.6rem; color: var(--faint); }
+  .brief .bsum { font-family: var(--font-display); font-size: 1.02rem; line-height: 1.2; margin: 0 0 0.7rem; color: var(--text); }
+  .brief ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+  .brief li { font-size: 0.78rem; color: var(--muted); display: flex; gap: 0.5rem; line-height: 1.35; }
+  .brief li::before { content: ""; flex: none; width: 5px; height: 5px; margin-top: 0.45em; border-radius: 50%; background: var(--steel); }
+  .brief li.hot::before { background: var(--accent); }
+
+  /* ---------- role table ---------- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+  table.matrix { width: 100%; border-collapse: collapse; min-width: 760px; }
+  table.matrix th, table.matrix td { text-align: left; padding: 1rem 1.15rem; vertical-align: top; border-bottom: 1px solid var(--line-soft); }
+  table.matrix thead th {
+    font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--faint); font-weight: 400; background: var(--panel-2);
+  }
+  table.matrix tbody tr:last-child td { border-bottom: none; }
+  table.matrix .fn { font-family: var(--font-display); font-size: 1.08rem; color: var(--text); white-space: nowrap; }
+  table.matrix td { font-size: 0.92rem; color: var(--muted); }
+  table.matrix .auto { color: var(--text); }
+  .tag { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.15em 0.5em; border-radius: 2px; border: 1px solid var(--line); color: var(--steel); display: inline-block; }
+  .tag.human { color: var(--accent); border-color: rgba(201,154,63,0.4); }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.7rem 1.6rem; margin: 0 0 1.4rem; }
+  .legend .li { display: flex; align-items: center; gap: 0.55rem; font-size: 0.84rem; color: var(--muted); }
+
+  /* ---------- principles ---------- */
+  .grid-5 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: 4px; overflow: hidden; }
+  .principle { background: var(--ground); padding: 1.8rem 1.6rem; display: flex; flex-direction: column; gap: 0.7rem; }
+  .section--panel .principle { background: var(--panel); }
+  .principle .pnum { font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent); letter-spacing: 0.1em; }
+  .principle h3 { font-size: 1.2rem; line-height: 1.15; }
+  .principle p { margin: 0; font-size: 0.9rem; color: var(--muted); line-height: 1.55; }
+
+  /* ---------- maturity ---------- */
+  .ladder { position: relative; display: flex; flex-direction: column; gap: 1px; }
+  .rung { display: grid; grid-template-columns: 88px 1fr; gap: clamp(1rem, 3vw, 2.4rem); padding: 1.9rem 0; border-top: 1px solid var(--line-soft); align-items: start; }
+  .rung:first-child { border-top: none; }
+  .rung .lvl { font-family: var(--font-mono); }
+  .rung .lvl .l { font-size: 1.7rem; color: var(--accent); display: block; line-height: 1; }
+  .rung .lvl .lt { font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+  .rung h3 { font-size: 1.35rem; margin-bottom: 0.5rem; }
+  .rung .desc { color: var(--muted); font-size: 0.95rem; max-width: 62ch; }
+  .rung .meta { display: flex; flex-wrap: wrap; gap: 1.4rem; margin-top: 0.9rem; }
+  .rung .meta span { font-size: 0.82rem; color: var(--muted); }
+  .rung .meta b { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--steel); font-weight: 400; display: block; margin-bottom: 0.15rem; }
+  .rung .fill { height: 3px; margin-top: 1.1rem; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .rung .fill i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-hi)); }
+
+  /* ---------- roadmap ---------- */
+  .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 1.4rem; }
+  .phase { border: 1px solid var(--line); border-radius: 4px; padding: 1.7rem 1.5rem; background: var(--ground); display: flex; flex-direction: column; gap: 0.9rem; }
+  .section--panel .phase { background: var(--panel); }
+  .phase .ph-n { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.16em; color: var(--faint); text-transform: uppercase; }
+  .phase .ph-n b { color: var(--accent); font-weight: 400; }
+  .phase h3 { font-size: 1.25rem; line-height: 1.1; }
+  .phase p { margin: 0; font-size: 0.9rem; color: var(--muted); line-height: 1.55; }
+  .tmpl { font-family: var(--font-mono); font-size: 0.74rem; line-height: 1.6; color: var(--steel); background: #10141A; border: 1px solid var(--line-soft); border-left: 2px solid var(--accent); border-radius: 0 3px 3px 0; padding: 0.8rem 0.9rem; margin-top: auto; white-space: pre-wrap; }
+  .tmpl .c { color: var(--faint); }
+  .tpl-intro { font-size: 0.92rem; color: var(--muted); margin: 1.9rem 0 0; }
+  .tpl-list { margin-top: 0.9rem; display: flex; flex-direction: column; gap: 0.7rem; }
+  .tpl { border: 1px solid var(--line); border-radius: 4px; background: var(--ground); overflow: hidden; }
+  .section--panel .tpl { background: var(--panel-2); }
+  .tpl > summary { list-style: none; cursor: pointer; padding: 0.95rem 1.2rem; display: flex; align-items: center; gap: 0.8rem; }
+  .tpl > summary::-webkit-details-marker { display: none; }
+  .tpl > summary .ph { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); flex: none; }
+  .tpl > summary .tt { font-family: var(--font-display); font-size: 1.02rem; color: var(--text); }
+  .tpl > summary:hover .tt { color: var(--accent-hi); }
+  .tpl > summary .chev { margin-left: auto; color: var(--accent); font-family: var(--font-mono); font-size: 1rem; transition: transform .25s ease; }
+  .tpl[open] > summary .chev { transform: rotate(90deg); }
+  .tpl .tpl-body { padding: 0 1.2rem 1.3rem; }
+  .tpl .tpl-body .note { font-size: 0.86rem; color: var(--faint); margin: 0 0 0.9rem; line-height: 1.5; }
+  .tpl .tpl-body .tmpl { margin-top: 0; }
+
+  /* ---------- patterns ---------- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; }
+  .pcard { border: 1px solid var(--line); border-radius: 4px; padding: 1.5rem 1.4rem; background: var(--ground); }
+  .section--panel .pcard { background: var(--panel); }
+  .pcard .ic { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.16em; color: var(--accent); text-transform: uppercase; }
+  .pcard h3 { font-size: 1.1rem; margin: 0.6rem 0 0.5rem; }
+  .pcard p { margin: 0; font-size: 0.88rem; color: var(--muted); line-height: 1.55; }
+
+  /* ---------- governance ---------- */
+  .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1px 2.4rem; }
+  .check { display: flex; gap: 1rem; padding: 1.3rem 0; border-bottom: 1px solid var(--line-soft); }
+  .check .mark { flex: none; width: 26px; height: 26px; border: 1px solid var(--accent); border-radius: 3px; display: grid; place-items: center; color: var(--accent); font-family: var(--font-mono); font-size: 0.8rem; margin-top: 0.1rem; }
+  .check h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+  .check p { margin: 0; font-size: 0.86rem; color: var(--muted); line-height: 1.5; }
+
+  /* ---------- stack ---------- */
+  .stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.4rem; }
+  .scol { border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--ground); }
+  .section--panel .scol { background: var(--panel); }
+  .scol .top { padding: 1.4rem 1.5rem; border-bottom: 1px solid var(--line); }
+  .scol .verb { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+  .scol h3 { font-size: 1.2rem; margin-top: 0.4rem; }
+  .scol .rows { padding: 0.5rem 1.5rem 1.4rem; }
+  .scol .row { padding: 0.85rem 0; border-bottom: 1px solid var(--line-soft); }
+  .scol .row:last-child { border-bottom: none; }
+  .scol .row .rk { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+  .scol .row .rv { font-size: 0.9rem; color: var(--muted); margin-top: 0.15rem; }
+  .scol .row .rv b { color: var(--text); font-weight: 600; font-family: var(--font-body); }
+  .scol.rec { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 24px 56px -32px rgba(201,154,63,0.55); }
+  .scol.rec .top { background: linear-gradient(180deg, rgba(201,154,63,0.14), rgba(201,154,63,0)); }
+  .scol .badge { display: inline-block; font-family: var(--font-mono); font-size: 0.54rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ground); background: var(--accent); border-radius: 2px; padding: 0.22em 0.6em; margin-bottom: 0.7rem; }
+
+  .cta { text-align: center; }
+  .cta-inner { max-width: 720px; }
+  .cta .eyebrow { color: var(--accent); }
+  .cta h2 { margin: 0.8rem 0 0; }
+  .cta .lead { margin: 1.2rem auto 2rem; }
+  .cta-btn { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ground); background: var(--accent); border-radius: 3px; padding: 0.9em 1.6em; transition: background .2s ease; }
+  .cta-btn:hover { background: var(--accent-hi); color: var(--ground); }
+  .cta .sub { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.06em; color: var(--faint); margin-top: 1.3rem; }
+
+  /* ---------- pitfalls ---------- */
+  .pitfalls { display: flex; flex-direction: column; }
+  .pit { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1rem, 4vw, 3rem); padding: 1.5rem 0; border-top: 1px solid var(--line-soft); align-items: baseline; }
+  .pit:first-child { border-top: none; }
+  .pit .bad { color: var(--text); font-family: var(--font-display); font-size: 1.12rem; line-height: 1.25; }
+  .pit .bad .x { color: var(--faint); font-family: var(--font-mono); margin-right: 0.6em; }
+  .pit .fix { color: var(--muted); font-size: 0.92rem; }
+  .pit .fix .arr { color: var(--accent); font-family: var(--font-mono); margin-right: 0.5em; }
+  @media (max-width: 680px) { .pit { grid-template-columns: 1fr; gap: 0.5rem; } }
+
+  /* ---------- sources ---------- */
+  .sources { columns: 2; column-gap: 3rem; }
+  .sources .src-item { break-inside: avoid; padding: 0.7rem 0; border-bottom: 1px solid var(--line-soft); }
+  .sources .src-item .t { font-size: 0.92rem; color: var(--text); }
+  .sources .src-item .o { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); display: block; margin-top: 0.15rem; }
+  @media (max-width: 680px) { .sources { columns: 1; } }
+
+  /* ---------- footer ---------- */
+  .foot { padding: 3rem 0 4rem; border-top: 1px solid var(--line-soft); }
+  .foot p { color: var(--faint); font-size: 0.82rem; max-width: 70ch; }
+  .disclaimer { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.04em; color: var(--faint); line-height: 1.7; }
+
+  /* ---------- live demo ---------- */
+  .demo-wide { margin-bottom: 1.4rem; }
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+  @media (max-width: 760px) { .demo-grid { grid-template-columns: 1fr; } }
+  .dpanel { border: 1px solid var(--line); border-radius: 4px; background: var(--panel); padding: 1.4rem 1.4rem 1.5rem; position: relative; overflow: hidden; }
+  .dpanel .dh { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.2rem; }
+  .dpanel .dh .ddot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); flex: none; }
+  .dpanel .dh .dt { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .dpanel .dcap { font-size: 0.84rem; color: var(--faint); margin: 1.1rem 0 0; line-height: 1.5; }
+
+  .tl { position: relative; height: 78px; }
+  .tl .track { position: absolute; left: 0; right: 0; top: 30px; height: 2px; background: var(--line); }
+  .tl .prog { position: absolute; left: 0; top: 30px; height: 2px; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-hi)); }
+  .tl .head { position: absolute; top: 22px; width: 2px; height: 18px; background: var(--accent-hi); box-shadow: 0 0 8px var(--accent-hi); left: 0; }
+  .tl .mk { position: absolute; top: 31px; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: var(--panel-2); border: 1.5px solid var(--faint); transition: background .3s ease, border-color .3s ease, box-shadow .3s ease; }
+  .tl .mk.on { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .tl .mk .lab { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.04em; color: var(--faint); white-space: nowrap; }
+  .tl .mk.on .lab { color: var(--accent); }
+  .dchips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.2rem; }
+  .dchip { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); border: 1px solid var(--line-soft); border-radius: 2px; padding: 0.22em 0.5em; transition: color .3s ease, background .3s ease, border-color .3s ease; }
+  .dchip.on { color: var(--ground); background: var(--accent); border-color: var(--accent); }
+  .tl-msg { font-size: 0.92rem; color: var(--text); margin-top: 1rem; min-height: 2.7em; line-height: 1.4; }
+  .tl-msg b { color: var(--accent); font-weight: 600; }
+
+  .mem { display: flex; flex-direction: column; gap: 0.5rem; min-height: 244px; }
+  .mement { display: flex; align-items: center; gap: 0.6rem; background: var(--panel-2); border: 1px solid var(--line-soft); border-radius: 3px; padding: 0.55rem 0.7rem; font-size: 0.84rem; color: var(--text); opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; }
+  .mement.show { opacity: 1; transform: translateY(0); }
+  .mement.rule { border-left: 2px solid var(--accent); }
+  .mement .mtag { margin-left: auto; font-family: var(--font-mono); font-size: 0.54rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--steel); border: 1px solid var(--line); border-radius: 2px; padding: 0.18em 0.45em; white-space: nowrap; transition: color .4s ease, border-color .4s ease; }
+  .mement .mtag.ok { color: var(--accent); border-color: rgba(201,154,63,0.5); }
+
+  .mail { min-height: 244px; display: flex; flex-direction: column; gap: 0.8rem; }
+  .mailin { background: var(--panel-2); border: 1px solid var(--line-soft); border-radius: 3px; padding: 0.6rem 0.7rem; opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; }
+  .mailin.show { opacity: 1; transform: translateY(0); }
+  .mailin .mfrom { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+  .mailin .msubj { font-size: 0.88rem; color: var(--text); margin-top: 0.15rem; }
+  .draft { border: 1px solid var(--line); border-top: 2px solid var(--steel); border-radius: 3px; padding: 0.7rem 0.8rem; background: #10141A; flex: 1; opacity: 0; transition: opacity .4s ease; }
+  .draft.show { opacity: 1; }
+  .draft .dlabel { font-family: var(--font-mono); font-size: 0.54rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--steel); margin-bottom: 0.45rem; }
+  .draft .dtext { font-size: 0.86rem; color: var(--muted); line-height: 1.5; min-height: 4.5em; }
+  .draft .dtext .cur { color: var(--accent); }
+  .mailbtn { align-self: flex-start; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); border: 1px solid var(--line); border-radius: 3px; padding: 0.55em 0.95em; transition: color .3s ease, background .3s ease, border-color .3s ease; }
+  .mailbtn.wait { color: var(--accent); border-color: var(--accent); animation: pulse 1.5s infinite; }
+  .mailbtn.sent { color: var(--ground); background: var(--accent); border-color: var(--accent); animation: none; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(201,154,63,.45); } 70% { box-shadow: 0 0 0 9px rgba(201,154,63,0); } 100% { box-shadow: 0 0 0 0 rgba(201,154,63,0); } }
+
+  @media (max-width: 820px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .console { max-width: 460px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto; }
+    .mailbtn.wait { animation: none; }
+  }
+</style>
+
+<header class="topbar">
+  <div class="container inner">
+    <div class="brand"><span class="dot"></span> AI Chief of Staff</div>
+    <nav class="topnav">
+      <a href="#role">Role</a>
+      <a href="#principles">Principy</a>
+      <a href="#maturity">Zralost</a>
+      <a href="#build">Stavba</a>
+      <a href="#govern">Řízení</a>
+      <a href="#stack">Stack</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Kancelář Chief of Staff</p>
+        <h1>Postavte si Chief of Staff, <span class="em">jakého nenajmete.</span></h1>
+        <p class="lead">Ráno otevřete pět appek, jen abyste zjistili, co hoří. Dobrý chief of staff to udělá za vás — projde mail, kalendář i Slack a v sedm ráno pošle jednu zprávu: tohle dnes potřebuje vaše rozhodnutí. Velkou část téhle práce dnes zvládne i AI. Ne když na ni hodíte dalšího chatbota, ale když ji postavíte s rozmyslem. Tady je návod jak.</p>
+        <div class="meta-row">
+          <div class="fact"><span class="v">1–2 hod / den</span><span class="k">Kolik si vrátíte (dle zdrojů)</span></div>
+          <div class="fact"><span class="v">Jakýkoli LLM</span><span class="k">Nezáleží na nástroji</span></div>
+          <div class="fact"><span class="v">4 fáze</span><span class="k">Jak na to</span></div>
+        </div>
+      </div>
+      <div class="console" aria-hidden="true">
+        <canvas id="signal"></canvas>
+        <span class="src s1">Email</span>
+        <span class="src s2">Kalendář</span>
+        <span class="src s3">Slack</span>
+        <span class="src s4">Dokumenty</span>
+        <span class="src s5">Schůzky</span>
+        <div class="brief">
+          <div class="bhead"><span class="btitle">Denní brief</span><span class="bday">Út 07:00</span></div>
+          <p class="bsum">Dnes na vás čekají 3 rozhodnutí.</p>
+          <ul>
+            <li class="hot">Schválit Q3 rozpočet — do 14:00</li>
+            <li class="hot">Odpovědět předsedovi představenstva — čeká 2 dny</li>
+            <li>Jeden obchod vázne — owner pingnut, bez odpovědi</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROLE -->
+  <section class="section" id="role">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">01</span>Role</p>
+        <h2>Co dělá chief of staff — a co z toho zvládne AI.</h2>
+        <p class="lead">Nezačínejte u nástroje, ale u práce. Lidský chief of staff dělá sedm věcí. Něco z toho už AI umí, něco pořád musíte vy a většina funguje nejlíp napůl: AI připraví, vy rozhodnete.</p>
+      </div>
+      <div class="table-scroll">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>Funkce</th>
+              <th>Co předáte AI</th>
+              <th>Kde zůstáváte vy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="fn">Co se ke mně dostane</td>
+              <td class="auto">Z 60 nepřečtených mailů vytáhne tři, co fakt potřebují vás. Zbytek zařadí.</td>
+              <td>Když píše naštvaný klíčový klient, odpovídáte vy.</td>
+            </tr>
+            <tr>
+              <td class="fn">Přehled z mnoha zdrojů</td>
+              <td class="auto">Z mailu, kalendáře, Slacku a dokumentů složí jeden ranní přehled — místo pěti otevřených appek.</td>
+              <td>Přečíst ho a jednat podle něj.</td>
+            </tr>
+            <tr>
+              <td class="fn">Dotahování</td>
+              <td class="auto">Pamatuje, že jste v úterý slíbili poslat nabídku, a ve čtvrtek připomene, že pořád visí.</td>
+              <td>Když to vázne, eskalaci a posun termínu řešíte vy.</td>
+            </tr>
+            <tr>
+              <td class="fn">Příprava na schůzky</td>
+              <td class="auto">Před callem s klientem připraví: co jste řešili minule, co jste slíbili, kdo bude na hovoru.</td>
+              <td>Samotné jednání vedete vy.</td>
+            </tr>
+            <tr>
+              <td class="fn">Komunikace</td>
+              <td class="auto">Napíše první draft odpovědi vaším stylem — vy ho přečtete a pošlete.</td>
+              <td>Odeslání a citlivé zprávy. Mail představenstvu nepíše nikdo jiný.</td>
+            </tr>
+            <tr>
+              <td class="fn">Podpora rozhodování</td>
+              <td class="auto">K otázce „najmout, nebo počkat" rozloží pro a proti a dohledá čísla, co chybí.</td>
+              <td>Rozhodnutí uděláte vy.</td>
+            </tr>
+            <tr>
+              <td class="fn">Koordinace a politika</td>
+              <td class="auto">Hlídá napříč týmy, jestli se launch nezdrží, a včas pípne.</td>
+              <td>Číst náladu a politiku v týmu.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLES -->
+  <section class="section section--panel" id="principles">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">02</span>Principy</p>
+        <h2>Pět věcí, na kterých to stojí nebo padá.</h2>
+        <p class="lead">Většina pokusů o AI asistenta tiše vyšumí. Ty, co vydrží, mají společných pět věcí. Tady jsou — na příkladech, ne jako poučky.</p>
+      </div>
+      <div class="grid-5">
+        <div class="principle">
+          <span class="pnum">01</span>
+          <h3>Jeden úkol, ne celé oddělení</h3>
+          <p>Nezadávejte „řiď mi kalendář". Zadejte „každé ráno mi napiš, které schůzky se kryjí". To druhé doběhne, to první se rozpadne. Nejvíc pokusů ztroskotá na tom, že chtěly automatizovat celé oddělení místo jednoho úkolu.</p>
+        </div>
+        <div class="principle">
+          <span class="pnum">02</span>
+          <h3>Dej mu tři svoje maily</h3>
+          <p>AI nepíše jako vy, protože vás nezná — ne proto, že máte špatný prompt. Dejte jí tři vaše staré maily a kvalita vyskočí víc než po jakékoli kouzelné formulaci.</p>
+        </div>
+        <div class="principle">
+          <span class="pnum">03</span>
+          <h3>Ať se ozve sám</h3>
+          <p>Asistenta, kterého se musíte vzpomenout zeptat, použijete třikrát a zapomenete. Brief, co sám přistane v sedm ráno, čtete každý den. Dejte tu práci na pevný čas.</p>
+        </div>
+        <div class="principle">
+          <span class="pnum">04</span>
+          <h3>Ať není věčný stážista</h3>
+          <p>Bez paměti vysvětlujete pokaždé znovu, kdo je kdo a na čem děláte. Stejný systém s pamětí si to drží — a po týdnu je z něj užitečný kolega, ne stážista první den.</p>
+        </div>
+        <div class="principle">
+          <span class="pnum">05</span>
+          <h3>Nejdřív ať jen navrhuje</h3>
+          <p>Nedávejte agentovi hned právo posílat maily za vás. První týden ať jen navrhuje a vy klikáte „odeslat". Co dělá spolehlivě, pak pusťte samo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MATURITY -->
+  <section class="section" id="maturity">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">03</span>Jak to dozrává</p>
+        <h2>Čtyři úrovně, od odpovídání k jednání.</h2>
+        <p class="lead">K autonomnímu operátorovi se nedoskočí. Každá úroveň přidá jednu věc a zaslouží si tu další. Poznejte, kde jste — a co potřebuje ten další krok.</p>
+      </div>
+      <div class="ladder">
+        <div class="rung">
+          <div class="lvl"><span class="l">L1</span><span class="lt">Reaktivní</span></div>
+          <div>
+            <h3>Asistent na zavolání</h3>
+            <p class="desc">Vložíte 40stránkový report a řeknete „shrň mi to". Za minutu máte shrnutí. Super — ale nic se nestane, dokud se sami nezeptáte.</p>
+            <div class="fill"><i style="width:22%"></i></div>
+          </div>
+        </div>
+        <div class="rung">
+          <div class="lvl"><span class="l">L2</span><span class="lt">Naplánovaný</span></div>
+          <div>
+            <h3>Stálý brief</h3>
+            <p class="desc">V sedm ráno vám sám přistane jeden přehled: dvě schůzky se kryjí, tři maily čekají na odpověď, jeden úkol je po termínu. Vy jste zatím nehnuli prstem. Tady to začíná dávat smysl.</p>
+            <div class="meta">
+              <span><b>Přidává</b>Běhy podle času</span>
+              <span><b>Odemyká</b>Přehled bez ptaní</span>
+            </div>
+            <div class="fill"><i style="width:48%"></i></div>
+          </div>
+        </div>
+        <div class="rung">
+          <div class="lvl"><span class="l">L3</span><span class="lt">Paměť</span></div>
+          <div>
+            <h3>Systém, který si pamatuje</h3>
+            <p class="desc">Ví, že „Klára" je z Nordie a co jste řešili minule. Když ho jednou opravíte („tohle posílej rovnou Tomášovi"), příště to udělá sám. Přestáváte vysvětlovat dokola.</p>
+            <div class="meta">
+              <span><b>Přidává</b>Trvalou knowledge base</span>
+              <span><b>Odemyká</b>Kontext, co se nabaluje</span>
+            </div>
+            <div class="fill"><i style="width:74%"></i></div>
+          </div>
+        </div>
+        <div class="rung">
+          <div class="lvl"><span class="l">L4</span><span class="lt">Autonomie</span></div>
+          <div>
+            <h3>Operační systém</h3>
+            <p class="desc">Jeden agent třídí inbox, druhý hlídá kalendář, třetí připravuje na schůzky — a něco nad nimi to řídí. Cokoli nevratného (odeslat, smazat) pořád schvalujete vy. Tady už to neřídíte vy, ale ono řídí kancelář. Vyspělé reálné systémy fungují přesně takhle.</p>
+            <div class="meta">
+              <span><b>Přidává</b>Víc spolupracujících agentů</span>
+              <span><b>Odemyká</b>Práci, kterou opravdu delegujete</span>
+            </div>
+            <div class="fill"><i style="width:100%"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUILD -->
+  <section class="section section--panel" id="build">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">04</span>Jak to postavit</p>
+        <h2>Čtyři fáze, každá s něčím hotovým.</h2>
+        <p class="lead">Žádná velká architektura. Čtyři kroky, každý končí něčím, co reálně běží a co umíte změřit. Další fázi nezačínejte, dokud ta předchozí nefunguje.</p>
+      </div>
+      <div class="phases">
+        <div class="phase">
+          <span class="ph-n">Fáze <b>0</b> — Vyber</span>
+          <h3>Vyber jednu bolavou věc</h3>
+          <p>Vezměte to, co vás štve nejvíc — třeba ranní třídění inboxu. Změřte, kolik vám to dnes bere: řekněme 40 minut. To je vaše číslo. Teď odolejte chuti přidávat další věci.</p>
+          <div class="tmpl"><span class="c"># rozsah.md</span>
+Jedna věc: třídění inboxu
+Dnes:      40 min/den
+Hotovo až: ____________</div>
+        </div>
+        <div class="phase">
+          <span class="ph-n">Fáze <b>1</b> — Onboarding</span>
+          <h3>Zaškol ho jako nováčka</h3>
+          <p>Nepiš příkazy, dej kontext. Pět krátkých souborů: kdo jste, jak píšete (přiložte pár svých mailů), čemu se vyhnout, na čem teď děláte, jak s vámi pracovat. Dvacet minut, co se vrací měsíce — stejně jako u nového člověka.</p>
+          <div class="tmpl"><span class="c"># kontext/</span>
+kdo-jsem.md   jak-pisu.md
+cemu-se-vyhnout.md
+priority.md   pravidla.md</div>
+        </div>
+        <div class="phase">
+          <span class="ph-n">Fáze <b>2</b> — Paměť</span>
+          <h3>Paměť a denní brief</h3>
+          <p>Dejte mu zápisník, který čte i píše (klidně složka s poznámkami). A vypusťte první brief: nahoře rozhodnutí — co, kdo, do kdy. Co se nestihne, přenese se na zítřek, ať to nezapadne.</p>
+          <div class="tmpl"><span class="c"># brief každé ráno</span>
+ROZHODNI → kdo · do kdy
+SLEDUJ   → co visí + jak dlouho
+PŘENES   → ze včerejška</div>
+        </div>
+        <div class="phase">
+          <span class="ph-n">Fáze <b>3</b> — Provoz</span>
+          <h3>Spusť, uč, hlídej</h3>
+          <p>Spusťte ho na pevný čas (a na věci jako příchozí mail od šéfa). Když vám něco udělá špatně, řekněte mu to — a ať si to pamatuje. Odesílání a mazání nechte na schválení. Co zvládá bez chyb, postupně pusťte samo.</p>
+          <div class="tmpl"><span class="c"># koloběh</span>
+čas + události
+oprava → pravidlo
+nevratné = schválí člověk</div>
+        </div>
+      </div>
+
+      <p class="tpl-intro">Chcete vidět vyplněno? Takhle si tím prošel jeden provozní ředitel e-commerce — rozbalte a použijte jako šablonu.</p>
+      <div class="tpl-list">
+        <details class="tpl">
+          <summary><span class="ph">Fáze 0</span><span class="tt">Vyplněný rozsah</span><span class="chev">›</span></summary>
+          <div class="tpl-body">
+            <p class="note">120 lidí, e-commerce. Nejvíc ho štvalo ranní hrabání v inboxu — tak začal jenom tím.</p>
+            <div class="tmpl"><span class="c"># rozsah.md</span>
+Jedna věc: ranní třídění inboxu
+Dnes:      ~45 min, občas přehlédnu důležité
+Hotovo až: každé ráno mám 5 mailů k akci,
+           zbytek označený a archivovaný</div>
+          </div>
+        </details>
+        <details class="tpl">
+          <summary><span class="ph">Fáze 1</span><span class="tt">Vyplněné kontextové soubory</span><span class="chev">›</span></summary>
+          <div class="tpl-body">
+            <p class="note">Pět krátkých souborů místo dlouhého promptu. Sepsal je za dvacet minut.</p>
+            <div class="tmpl"><span class="c"># kdo-jsem.md</span>
+COO, e-commerce, 120 lidí. Rozhoduju rychle,
+nesnáším dlouhé maily. Hlídám cash flow a tým.
+
+<span class="c"># jak-pisu.md</span>
+(přiloženy 3 moje odeslané maily jako vzor stylu)
+
+<span class="c"># cemu-se-vyhnout.md</span>
+Žádné „doufám, že se máte dobře". Věcně, krátce.
+
+<span class="c"># pravidla.md</span>
+Faktury nad 100k → vždy ukaž mně, neodesílej sám.</div>
+          </div>
+        </details>
+        <details class="tpl">
+          <summary><span class="ph">Fáze 2</span><span class="tt">Jak vypadá hotový brief</span><span class="chev">›</span></summary>
+          <div class="tpl-body">
+            <p class="note">Co mu teď přistane každé ráno v 7:00 — místo otevírání pěti appek.</p>
+            <div class="tmpl"><span class="c"># Brief — út 23. 6.</span>
+ROZHODNI
+• Faktura sklad 140k — schválit, do 12:00
+• Nábor: 2 kandidáti čekají na tvé ano (3 dny)
+SLEDUJ
+• Reklamace VIP klient — řeší Lucie (1 den)
+PŘENES
+• Smlouva s dopravcem — pořád u právníků (4 dny)</div>
+          </div>
+        </details>
+        <details class="tpl">
+          <summary><span class="ph">Fáze 3</span><span class="tt">Pravidla z jeho oprav</span><span class="chev">›</span></summary>
+          <div class="tpl-body">
+            <p class="note">Začínal s prázdnou hlavou. Po dvou týdnech, co ho opravoval, tohle zvládá sám.</p>
+            <div class="tmpl"><span class="c"># naučená pravidla</span>
+- Maily od dopravce → shrnout, neodpovídat sám
+- „Urgentní" od Lucie = fakt urgentní → nahoru
+- Po 18:00 už needituj, nech to na ráno
+- Newslettery → archiv, do briefu nedávat</div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- PATTERNS -->
+  <section class="section" id="patterns">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">05</span>Osvědčené díly</p>
+        <h2>Z čeho se to skládá — a jak to dělají ti, komu to běží.</h2>
+        <p class="lead">Vzory ze systémů, co fungují v ostrém provozu. Vypůjčte si je; nemusíte nic vymýšlet od nuly.</p>
+      </div>
+      <div class="cards">
+        <div class="pcard">
+          <span class="ic">Napojení</span>
+          <h3>Tři vrstvy dovnitř</h3>
+          <p>Gmail připojíte na pár kliknutí. Na hlubší věci je MCP. A co nemá API — třeba WhatsApp — dosáhnete přes browser. Většina lidí potřebuje všechny tři.</p>
+        </div>
+        <div class="pcard">
+          <span class="ic">Spouštění</span>
+          <h3>Hodiny plus události</h3>
+          <p>Brief jede ráno podle hodin. Ale když dorazí mail od největšího klienta, chcete vědět hned — to řeší událost. Spojte obojí.</p>
+        </div>
+        <div class="pcard">
+          <span class="ic">Dohled</span>
+          <h3>Schvalování po krocích</h3>
+          <p>První týden schvalujte každý odeslaný mail. Když vidíte, že to umí, kontrolujte namátkou každý desátý. Nakonec jen výjimky. Čím větší riziko, tím víc dohledu.</p>
+        </div>
+        <div class="pcard">
+          <span class="ic">Paměť</span>
+          <h3>Ověřená knowledge base</h3>
+          <p>U každé informace ať je vidět, odkud je: potvrzeno ze dvou míst, jen z jednoho, neověřeno, zastaralé. Podle těch nejistých ať nikdy nejedná samo.</p>
+        </div>
+        <div class="pcard">
+          <span class="ic">Důvěra</span>
+          <h3>Záznam o všem</h3>
+          <p>Ať každou změnu verzuje (klidně přes Git). Když něco udělá divně, mrknete do historie a víte přesně co a kdy. Bez toho mu nikdy nezačnete věřit.</p>
+        </div>
+        <div class="pcard">
+          <span class="ic">Náklady</span>
+          <h3>Rozpočet jako pojistka</h3>
+          <p>Dejte strop na den i na jeden běh. Když ho překročí, běh se prostě přeskočí. Žádné překvapení na faktuře.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GOVERN -->
+  <section class="section section--panel" id="govern">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">06</span>Řízení a důvěra</p>
+        <h2>Část, kterou C-suite nesmí přeskočit.</h2>
+        <p class="lead">Vašimi maily prochází akvizice, obchody i personální věci. Systém, co se jich dotýká, potřebuje mantinely dřív než funkce. Šest, na které nezapomenout.</p>
+      </div>
+      <div class="checklist">
+        <div class="check">
+          <div class="mark">1</div>
+          <div><h3>Oddělte citlivé</h3><p>Agent, co čte maily o akvizici, nemá co dělat ve stejné schránce jako ten, co vám rezervuje oběd.</p></div>
+        </div>
+        <div class="check">
+          <div class="mark">2</div>
+          <div><h3>Jen co je potřeba</h3><p>Asistent na třídění inboxu nepotřebuje přístup do účetnictví. Dejte jen to, co daná práce fakt vyžaduje.</p></div>
+        </div>
+        <div class="check">
+          <div class="mark">3</div>
+          <div><h3>Hesla stranou</h3><p>Hesla a klíče ať se dosadí až ve chvíli potřeby. Nikdy ať neleží přímo v textu, který model vidí.</p></div>
+        </div>
+        <div class="check">
+          <div class="mark">4</div>
+          <div><h3>Vlastní prostředí</h3><p>Agenta, co běží sám, nepouštějte na svém pracovním notebooku. Dejte mu vlastní stroj nebo sandbox.</p></div>
+        </div>
+        <div class="check">
+          <div class="mark">5</div>
+          <div><h3>Veďte záznam</h3><p>U každé důležité akce ať je jasné, kdo ji schválil. Co AI udělá za vás, může jednou někdo zpětně řešit.</p></div>
+        </div>
+        <div class="check">
+          <div class="mark">6</div>
+          <div><h3>Hosting vědomě</h3><p>Citlivé věci držte u sebe (self-host nebo in-tenant). Kde to data dovolí, sáhněte po hotové službě kvůli rychlosti.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <section class="section" id="stack">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">07</span>Čím začít</p>
+        <h2>Tři cesty, podle toho, kdo jste.</h2>
+        <p class="lead">Tři cesty ke stejnému výsledku — liší se jen tím, kolik si uděláte sami. Když chcete fungující systém bez starostí, doporučujeme prostřední: ten vám postavíme na míru my.</p>
+      </div>
+      <div class="stack">
+        <div class="scol">
+          <div class="top"><span class="verb">Postav si to</span><h3>Když umíte kódit</h3></div>
+          <div class="rows">
+            <div class="row"><div class="rk">Jádro</div><div class="rv"><b>Agent, co si naskriptujete</b> a sami spustíte (CLI nebo SDK).</div></div>
+            <div class="row"><div class="rk">Paměť</div><div class="rv">Složka s poznámkami, kterou agent čte i píše.</div></div>
+            <div class="row"><div class="rk">Dosah</div><div class="rv">MCP konektory na mail, kalendář, chat.</div></div>
+            <div class="row"><div class="rk">Za co platíte</div><div class="rv">Maximum kontroly, nejvíc práce na začátku.</div></div>
+          </div>
+        </div>
+        <div class="scol rec">
+          <div class="top"><span class="badge">Doporučená cesta</span><span class="verb">Postavíme vám to</span><h3>Když chcete jen výsledek</h3></div>
+          <div class="rows">
+            <div class="row"><div class="rk">Jádro</div><div class="rv"><b>Systém na míru, který vám postavíme a provozujeme.</b> Přesně tohle děláme.</div></div>
+            <div class="row"><div class="rk">Paměť</div><div class="rv">Vaši knowledge base nastavíme a hlídáme za vás.</div></div>
+            <div class="row"><div class="rk">Dosah</div><div class="rv">Napojíme na vaše nástroje — mail, kalendář, chat, CRM.</div></div>
+            <div class="row"><div class="rk">Co z toho máte</div><div class="rv">Nejrychleji k výsledku. Stavbu i provoz řešíme my.</div></div>
+          </div>
+        </div>
+        <div class="scol">
+          <div class="top"><span class="verb">Měj to doma</span><h3>Když nesmí ven data</h3></div>
+          <div class="rows">
+            <div class="row"><div class="rk">Jádro</div><div class="rv"><b>Lokální nebo in-tenant modely</b> pod vaší kontrolou.</div></div>
+            <div class="row"><div class="rk">Paměť</div><div class="rv">Lokální složka; nic neopustí váš dům.</div></div>
+            <div class="row"><div class="rk">Dosah</div><div class="rv">Vlastní scheduler a konektory.</div></div>
+            <div class="row"><div class="rk">Za co platíte</div><div class="rv">Maximum kontroly nad daty, nejvíc provozu.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PITFALLS -->
+  <section class="section section--panel" id="pitfalls">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">08</span>Kde to lidem padá</p>
+        <h2>Proč většina pokusů selže — a co dělat jinak.</h2>
+        <p class="lead">Podle zveřejněných odhadů selže 70 až 95 procent AI agentních projektů. Důvody se opakují. Tady je každý z nich na příkladu, spárovaný s nápravou.</p>
+      </div>
+      <div class="pitfalls">
+        <div class="pit">
+          <div class="bad"><span class="x">✕</span>Zadáte „spravuj mi celou administrativu".</div>
+          <div class="fix"><span class="arr">→</span>Zúžit na jednu věc s jasným „hotovo". Třeba: „třiď mi inbox a označ, co je urgentní".</div>
+        </div>
+        <div class="pit">
+          <div class="bad"><span class="x">✕</span>Automatizujete proces, který nikdo nikdy nesepsal.</div>
+          <div class="fix"><span class="arr">→</span>Nejdřív ho jednou projděte a sepište. AI nepořádek jen zviditelní, neuklidí.</div>
+        </div>
+        <div class="pit">
+          <div class="bad"><span class="x">✕</span>V demu to šlapalo, na ostrých datech padá.</div>
+          <div class="fix"><span class="arr">→</span>Testujte rovnou na svých reálných, ošklivých mailech — ne na učesaném příkladu.</div>
+        </div>
+        <div class="pit">
+          <div class="bad"><span class="x">✕</span>Jeden krok tiše selže a pokazí celý řetězec.</div>
+          <div class="fix"><span class="arr">→</span>Počítejte s opakováním a u nevratných kroků (odeslat, smazat) ať vždy kývne člověk.</div>
+        </div>
+        <div class="pit">
+          <div class="bad"><span class="x">✕</span>Vymyslí si fakt a tváří se sebejistě.</div>
+          <div class="fix"><span class="arr">→</span>Ať odpovídá z dohledatelných zdrojů a u nejistého to přizná.</div>
+        </div>
+        <div class="pit">
+          <div class="bad"><span class="x">✕</span>Pořád dělá tu samou chybu.</div>
+          <div class="fix"><span class="arr">→</span>Hned první den zaveďte, že se z oprav učí. Jinak ji bude opakovat věčně.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMO -->
+  <section class="section" id="demo">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">09</span>Jak to běží naživo</p>
+        <h2>Den dobře nastaveného systému.</h2>
+        <p class="lead">Takhle to vypadá, když to běží: spouští se samo, pamatuje si souvislosti a chystá vám e-maily k odeslání. Tři krátké ukázky.</p>
+      </div>
+
+      <div class="dpanel demo-wide">
+        <div class="dh"><span class="ddot"></span><span class="dt">Automatický den · běží sám</span></div>
+        <div class="tl" id="tl">
+          <div class="track"></div>
+          <div class="prog" id="tlprog"></div>
+          <div class="head" id="tlhead"></div>
+          <div class="mk" data-p="10" style="left:10%"><span class="lab">07:00</span></div>
+          <div class="mk" data-p="38" style="left:38%"><span class="lab">11:00</span></div>
+          <div class="mk" data-p="62" style="left:62%"><span class="lab">14:00</span></div>
+          <div class="mk" data-p="88" style="left:88%"><span class="lab">18:30</span></div>
+        </div>
+        <div class="dchips" id="tlchips">
+          <span class="dchip" data-s="email">Email</span>
+          <span class="dchip" data-s="cal">Kalendář</span>
+          <span class="dchip" data-s="slack">Slack</span>
+          <span class="dchip" data-s="feedback">Vaše reakce</span>
+        </div>
+        <div class="tl-msg" id="tlmsg">Před sedmou ráno: systém čeká.</div>
+      </div>
+
+      <div class="demo-grid">
+        <div class="dpanel">
+          <div class="dh"><span class="ddot"></span><span class="dt">Paměť · roste a ověřuje se</span></div>
+          <div class="mem" id="mem"></div>
+          <p class="dcap">Co potvrdí dva zdroje, drží. Vaše opravy se mění v pravidla.</p>
+        </div>
+        <div class="dpanel">
+          <div class="dh"><span class="ddot"></span><span class="dt">Návrh e-mailu · čeká na vás</span></div>
+          <div class="mail" id="mail">
+            <div class="mailin" id="mailin"><div class="mfrom">Od: CFO</div><div class="msubj">Re: Q3 rozpočet</div></div>
+            <div class="draft" id="draft"><div class="dlabel">Návrh odpovědi · váš styl</div><div class="dtext" id="drafttext"></div></div>
+            <div class="mailbtn" id="mailbtn">Schválit a odeslat</div>
+          </div>
+          <p class="dcap">AI napíše první draft. Odeslání zůstává na vás.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section section--panel cta">
+    <div class="container cta-inner">
+      <p class="eyebrow">Tohle stavíme</p>
+      <h2>Přesně tenhle systém vám postavíme na míru.</h2>
+      <p class="lead">Všechno, co jste tu viděli — ranní brief, paměť, návrhy e-mailů i bezpečné předávání rozhodnutí — umíme nasadit do vašeho prostředí. Vy řeknete, co vás nejvíc štve. Zbytek je na nás.</p>
+      <a class="cta-btn" href="mailto:vojta.tuma@keboola.com?subject=AI%20Chief%20of%20Staff">Pojďme se bavit o tom vašem →</a>
+      <p class="sub">Začneme jednou bolavou věcí. Výsledek uvidíte do pár týdnů.</p>
+    </div>
+  </section>
+
+  <!-- SOURCES -->
+  <section class="section" id="sources">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow"><span class="num">10</span>Zdroje</p>
+        <h2>Odkud to čerpá.</h2>
+        <p class="lead">Vybraná startovní knihovna — role, reálné stavby, osvědčené vzory a governance.</p>
+      </div>
+      <div class="sources">
+        <div class="src-item"><a class="t" href="https://hbr.org/2020/05/the-case-for-a-chief-of-staff">The Case for a Chief of Staff</a><span class="o">Harvard Business Review</span></div>
+        <div class="src-item"><a class="t" href="https://medium.com/@jeremyutley/build-your-ai-chief-of-staff-in-30-minutes-b8211a5d745a">Build Your AI Chief of Staff in 30 Minutes</a><span class="o">Jeremy Utley</span></div>
+        <div class="src-item"><a class="t" href="https://medium.com/glennonai/hiring-and-onboarding-my-ai-chief-of-staff-b199e6151fab">Hiring and Onboarding My AI Chief of Staff</a><span class="o">Sean Glennon</span></div>
+        <div class="src-item"><a class="t" href="https://techysurgeon.substack.com/p/how-i-built-an-automated-executive">How I Built an Automated Executive Briefing System</a><span class="o">TechySurgeon</span></div>
+        <div class="src-item"><a class="t" href="https://www.lennysnewsletter.com/p/openclaw-the-complete-guide-to-building">A Complete Guide to Building a Personal AI Operating System</a><span class="o">Lenny's Newsletter</span></div>
+        <div class="src-item"><a class="t" href="https://platform.claude.com/docs/en/managed-agents/overview">Agents &amp; the Model Context Protocol</a><span class="o">Anthropic</span></div>
+        <div class="src-item"><a class="t" href="https://mem0.ai/blog/state-of-ai-agent-memory-2026">State of AI Agent Memory 2026</a><span class="o">mem0</span></div>
+        <div class="src-item"><a class="t" href="https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-change-agent-goals-decisions-and-implications-for-ceos-in-the-agentic-age">Leading in the Age of Agentic AI</a><span class="o">McKinsey</span></div>
+        <div class="src-item"><a class="t" href="https://cloudsecurityalliance.org/blog/2026/02/02/the-agentic-trust-framework-zero-trust-governance-for-ai-agents">The Agentic Trust Framework</a><span class="o">Cloud Security Alliance</span></div>
+        <div class="src-item"><a class="t" href="https://galileo.ai/blog/prevent-ai-agent-failure">Types of AI Agent Failure and How to Fix Them</a><span class="o">Galileo</span></div>
+        <div class="src-item"><a class="t" href="https://www.lindy.ai/">Lindy — AI executive assistant</a><span class="o">Produkt</span></div>
+        <div class="src-item"><a class="t" href="https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/agent-template-executive-briefing">Executive Briefing Agent Template</a><span class="o">Microsoft</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="container">
+      <p class="disclaimer">Framework pro vedení, které si staví AI chief of staff · 2026.<br>
+      Čísla jako ušetřený čas jsou tak, jak je uvádějí citované zdroje — orientační, ne záruka. Nástroje jsou příklady, ne doporučení.</p>
+    </div>
+  </footer>
+</main>
+
+<script>
+  (function () {
+    var canvas = document.getElementById("signal");
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = 0, H = 0, cx = 0, cy = 0;
+    var particles = [];
+
+    function resize() {
+      var r = canvas.getBoundingClientRect();
+      W = r.width; H = r.height;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx = W / 2; cy = H / 2;
+    }
+
+    function seed(n) {
+      particles = [];
+      for (var i = 0; i < n; i++) particles.push(make());
+    }
+
+    function make() {
+      var edge = Math.floor(Math.random() * 4);
+      var x, y;
+      if (edge === 0) { x = Math.random() * W; y = -10; }
+      else if (edge === 1) { x = W + 10; y = Math.random() * H; }
+      else if (edge === 2) { x = Math.random() * W; y = H + 10; }
+      else { x = -10; y = Math.random() * H; }
+      return {
+        x: x, y: y,
+        sx: x, sy: y,
+        t: Math.random(),
+        speed: 0.0016 + Math.random() * 0.0022,
+        warm: Math.random() > 0.55,
+        size: 1 + Math.random() * 1.4
+      };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      var tx = cx, ty = cy;
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        if (!reduce) p.t += p.speed;
+        if (p.t >= 1) { particles[i] = make(); continue; }
+        var e = p.t * p.t * (3 - 2 * p.t);
+        p.x = p.sx + (tx - p.sx) * e;
+        p.y = p.sy + (ty - p.sy) * e;
+        var alpha = Math.sin(p.t * Math.PI) * 0.5;
+        ctx.strokeStyle = (p.warm ? "rgba(201,154,63," : "rgba(124,156,168,") + (alpha * 0.4) + ")";
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        var back = 0.04;
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x + (tx - p.x) * back, p.y + (ty - p.y) * back);
+        ctx.stroke();
+        ctx.fillStyle = (p.warm ? "rgba(224,185,104," : "rgba(124,156,168,") + alpha + ")";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 70);
+      g.addColorStop(0, "rgba(201,154,63,0.12)");
+      g.addColorStop(1, "rgba(201,154,63,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - 70, cy - 70, 140, 140);
+      if (!reduce) requestAnimationFrame(draw);
+    }
+
+    resize();
+    seed(reduce ? 40 : 70);
+    window.addEventListener("resize", function () { resize(); });
+    draw();
+  })();
+</script>
+
+<script>
+  (function () {
+    var section = document.getElementById("demo");
+    if (!section) return;
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function runTimeline() {
+      var head = document.getElementById("tlhead"), prog = document.getElementById("tlprog"), msg = document.getElementById("tlmsg");
+      var mks = [].slice.call(document.querySelectorAll("#tl .mk"));
+      var chips = {};
+      [].slice.call(document.querySelectorAll("#tlchips .dchip")).forEach(function (c) { chips[c.getAttribute("data-s")] = c; });
+      var phases = [
+        { p: 10, mk: 0, chips: ["email", "cal", "slack"], msg: "<b>07:00 — Ranní brief.</b> Přečte Email, Kalendář a Slack a složí 3 rozhodnutí pro dnešek." },
+        { p: 38, mk: 1, chips: ["email", "slack"], msg: "<b>11:00 — Konsolidace.</b> Dva nové maily, jeden úkol odškrtnut. Brief aktualizován." },
+        { p: 62, mk: 2, chips: ["cal"], msg: "<b>14:00 — Konsolidace.</b> Schůzka přesunuta — brief to hned promítl." },
+        { p: 88, mk: 3, chips: ["feedback"], msg: "<b>18:30 — Učení.</b> Projde vaše dnešní opravy a upraví si pravidla." }
+      ];
+      var DUR = 15000, t0 = null, idx = 0, lastE = 0;
+      function reset() { idx = 0; mks.forEach(function (m) { m.classList.remove("on"); }); for (var k in chips) chips[k].classList.remove("on"); msg.innerHTML = "Před sedmou ráno: systém čeká."; }
+      function applyPhase(ph) {
+        mks[ph.mk].classList.add("on");
+        for (var k in chips) chips[k].classList.remove("on");
+        ph.chips.forEach(function (s) { if (chips[s]) chips[s].classList.add("on"); });
+        msg.innerHTML = ph.msg;
+      }
+      function frame(ts) {
+        if (t0 == null) t0 = ts;
+        var e = ((ts - t0) % DUR) / DUR * 100;
+        if (e < lastE) reset();
+        lastE = e;
+        head.style.left = e + "%"; prog.style.width = e + "%";
+        while (idx < phases.length && e >= phases[idx].p) { applyPhase(phases[idx]); idx++; }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function runMemory() {
+      var box = document.getElementById("mem");
+      var steps = [
+        { act: "add", id: "m1", txt: "Klára — Nordia, migrace dat", tag: "1 zdroj" },
+        { act: "verify", id: "m1", tag: "ověřeno 2×" },
+        { act: "add", id: "m2", txt: "Termín nabídky Vela — čtvrtek", tag: "úkol" },
+        { act: "add", id: "m3", txt: "Faktury posílat rovnou Tomášovi", tag: "z vaší opravy", rule: true },
+        { act: "add", id: "m4", txt: "Rozhodnuto: nový datový sklad místo starého", tag: "ověřeno 2×", ok: true }
+      ];
+      var tmo;
+      function doStep(s) {
+        if (s.act === "add") {
+          var el = document.createElement("div");
+          el.className = "mement" + (s.rule ? " rule" : "");
+          el.id = s.id;
+          el.innerHTML = '<span>' + s.txt + '</span><span class="mtag' + (s.ok ? " ok" : "") + '">' + s.tag + '</span>';
+          box.appendChild(el);
+          requestAnimationFrame(function () { el.classList.add("show"); });
+        } else if (s.act === "verify") {
+          var t = document.querySelector("#" + s.id + " .mtag");
+          if (t) { t.textContent = s.tag; t.classList.add("ok"); }
+        }
+      }
+      function fade() { var els = box.children; for (var j = 0; j < els.length; j++) els[j].classList.remove("show"); tmo = setTimeout(run, 700); }
+      function run() {
+        box.innerHTML = ""; var i = 0;
+        (function next() {
+          if (i >= steps.length) { tmo = setTimeout(fade, 3000); return; }
+          doStep(steps[i++]); tmo = setTimeout(next, 1500);
+        })();
+      }
+      run();
+    }
+
+    function runEmail() {
+      var inb = document.getElementById("mailin"), draft = document.getElementById("draft"), dtext = document.getElementById("drafttext"), btn = document.getElementById("mailbtn");
+      var reply = "Díky za čísla. Schvaluju navýšení marketingu o 8 %, zbytek držíme beze změny. Pošlu to dál týmu. — V.";
+      var tmo;
+      function run() {
+        inb.classList.remove("show"); draft.classList.remove("show"); dtext.textContent = "";
+        btn.className = "mailbtn"; btn.textContent = "Schválit a odeslat";
+        tmo = setTimeout(function () { inb.classList.add("show"); }, 500);
+        tmo = setTimeout(function () { draft.classList.add("show"); type(0); }, 1500);
+      }
+      function type(i) {
+        if (i <= reply.length) { dtext.innerHTML = reply.slice(0, i) + '<span class="cur">▋</span>'; tmo = setTimeout(function () { type(i + 1); }, 26); }
+        else { dtext.textContent = reply; tmo = setTimeout(waitApprove, 500); }
+      }
+      function waitApprove() { btn.className = "mailbtn wait"; btn.textContent = "Čeká na vaše kliknutí"; tmo = setTimeout(send, 2200); }
+      function send() { btn.className = "mailbtn sent"; btn.textContent = "Odesláno ✓"; tmo = setTimeout(run, 2800); }
+      run();
+    }
+
+    function renderStatic() {
+      document.querySelectorAll("#tl .mk").forEach(function (m) { m.classList.add("on"); });
+      var prog = document.getElementById("tlprog"), head = document.getElementById("tlhead"), msg = document.getElementById("tlmsg");
+      if (prog) prog.style.width = "100%"; if (head) head.style.left = "100%";
+      if (msg) msg.innerHTML = "<b>Po celý den.</b> Ráno brief, přes den konsolidace, večer se učí z vašich reakcí.";
+      document.querySelectorAll("#tlchips .dchip").forEach(function (c) { c.classList.add("on"); });
+      var box = document.getElementById("mem");
+      if (box) {
+        box.innerHTML = "";
+        [["Klára — Nordia, migrace dat", "ověřeno 2×", true, false],
+         ["Termín nabídky Vela — čtvrtek", "úkol", false, false],
+         ["Faktury posílat rovnou Tomášovi", "z vaší opravy", false, true],
+         ["Rozhodnuto: nový datový sklad místo starého", "ověřeno 2×", true, false]].forEach(function (r) {
+          var el = document.createElement("div");
+          el.className = "mement show" + (r[3] ? " rule" : "");
+          el.innerHTML = '<span>' + r[0] + '</span><span class="mtag' + (r[2] ? " ok" : "") + '">' + r[1] + '</span>';
+          box.appendChild(el);
+        });
+      }
+      var inb = document.getElementById("mailin"), draft = document.getElementById("draft"), dtext = document.getElementById("drafttext"), btn = document.getElementById("mailbtn");
+      if (inb) inb.classList.add("show"); if (draft) draft.classList.add("show");
+      if (dtext) dtext.textContent = "Díky za čísla. Schvaluju navýšení marketingu o 8 %, zbytek držíme beze změny. — V.";
+      if (btn) { btn.className = "mailbtn wait"; btn.textContent = "Čeká na vaše kliknutí"; }
+    }
+
+    var started = false;
+    function start() { if (started) return; started = true; runTimeline(); runMemory(); runEmail(); }
+
+    if (reduce) { renderStatic(); }
+    else if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { start(); io.disconnect(); } });
+      }, { threshold: 0.2 });
+      io.observe(section);
+    } else { start(); }
+  })();
+</script>

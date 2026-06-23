@@ -1,0 +1,40 @@
+<title>AI Chief of Staff — Framework</title>
+<style>
+  :root {
+    --ground: #14181E; --panel: #1B2129; --line: #2A323C;
+    --text: #E9E3D6; --muted: #9AA4AE; --faint: #6E7884;
+    --accent: #C99A3F; --accent-hi: #E0B968;
+    --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--ground); color: var(--text);
+    font-family: var(--font-body); display: grid; place-items: center; padding: 2rem;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: min(560px, 100%); text-align: center; }
+  .eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--accent); margin: 0 0 1.2rem; display: flex; align-items: center; justify-content: center; gap: 0.6em; }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 6vw, 2.9rem); line-height: 1.05; margin: 0 0 1rem; letter-spacing: -0.01em; }
+  h1 .em { color: var(--accent); font-style: italic; }
+  p.lead { color: var(--muted); font-size: 1.05rem; line-height: 1.6; margin: 0 auto 2.4rem; max-width: 42ch; }
+  .langs { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .lang { display: block; min-width: 200px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); padding: 1.3rem 1.5rem; text-decoration: none; transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+  .lang:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 18px 40px -28px rgba(201,154,63,0.7); }
+  .lang .k { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--faint); }
+  .lang .v { font-family: var(--font-display); font-size: 1.35rem; color: var(--text); margin-top: 0.3rem; }
+  .lang:hover .v { color: var(--accent-hi); }
+  .foot { margin-top: 2.6rem; font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.06em; color: var(--faint); }
+</style>
+<div class="wrap">
+  <p class="eyebrow"><span class="dot"></span> The Office of the Chief of Staff</p>
+  <h1>Build the chief of staff you <span class="em">can't hire.</span></h1>
+  <p class="lead">A framework for executives on building an AI Chief of Staff. Choose your language.</p>
+  <div class="langs">
+    <a class="lang" href="./ai-cos-framework-cs.html"><span class="k">Čeština</span><span class="v">Česká verze →</span></a>
+    <a class="lang" href="./ai-cos-framework.html"><span class="k">English</span><span class="v">English version →</span></a>
+  </div>
+  <p class="foot">2026 · self-contained, no tracking</p>
+</div>
